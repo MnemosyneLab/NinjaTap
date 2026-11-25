@@ -8,6 +8,19 @@ HEIGHT = 2736
 
 
 @dataclass(frozen=True)
+class Display:
+    rotation: int = 0
+
+    @property
+    def size(self) -> tuple[int, int]:
+        return (HEIGHT, WIDTH) if self.rotation in (1, 3) else (WIDTH, HEIGHT)
+
+    def contains(self, x: int, y: int) -> bool:
+        width, height = self.size
+        return 0 <= x < width and 0 <= y < height
+
+
+@dataclass(frozen=True)
 class Down:
     x: int
     y: int
@@ -49,6 +62,7 @@ Status = Literal[
     "ok",
     "screen_off",
     "rotation",
+    "rotation_changed",
     "no_device",
     "closed",
     "unauthorized",
@@ -56,5 +70,5 @@ Status = Literal[
 ]
 
 
-def sequence_body(steps: list[Step]) -> dict[str, Any]:
-    return {"sequence": [asdict(step) for step in steps]}
+def sequence_body(steps: list[Step], rotation: int = 0) -> dict[str, Any]:
+    return {"rotation": rotation, "sequence": [asdict(step) for step in steps]}

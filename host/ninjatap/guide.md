@@ -1,11 +1,11 @@
 # NinjaTap Agent 操作指南
 
-适用于通过 CLI 或 MCP 操作已配对的 HONOR DNY-NX9。手机需要运行 NinjaTap 服务，截图和触控还需要亮屏并保持竖屏。CLI 的 `ninjatap <命令> --help` 可查看参数。MCP 使用同名工具和命名参数。
+适用于通过 CLI 或 MCP 操作已配对的 HONOR DNY-NX9。手机需要运行 NinjaTap 服务，截图和触控还需要亮屏。CLI 的 `ninjatap <命令> --help` 可查看参数。MCP 使用同名工具和命名参数。
 
 ## 默认操作循环
 
 1. 用 `ninjatap screenshot /tmp/ninjatap-screen.png` 获得 PNG。需要用文字定位按钮、输入框、菜单和文件名时，用 `ninjatap screenshot --ocr /tmp/ninjatap-screen.png` 或在 MCP 调用里传 `ocr: true`，可得到每条可读文字的中心坐标。图标、缩略图、截图内的文字和识别不清的标签用 PNG 确认。
-2. 根据最新画面选择一个目标，普通按钮和卡片优先用 `ninjatap tap X Y`。小目标、贴近其他控件的目标或点位测试才用 `tap_exact`。坐标取自 **1264 × 2736 的原图**，原点在左上角。桌面应用点图标本体，OCR 给出的应用名通常在图标下方。
+2. 根据最新画面选择一个目标，普通按钮和卡片优先用 `ninjatap tap X Y`。小目标、贴近其他控件的目标或点位测试才用 `tap_exact`。坐标取自当前方向的原图，原点在左上角。桌面应用点图标本体，OCR 给出的应用名通常在图标下方。
 3. 等当前操作返回、页面稳定后再截图，确认结果再继续。连续几点只有在键盘布局或控件位置保持稳定时才用 `taps X1 Y1 X2 Y2 ...`。
 
 普通截图默认不调用 OCR。显式开启 OCR 后，如果识别失败，仍会得到 PNG 和识别失败提示；CLI 会继续保存图片。
@@ -34,7 +34,7 @@
 
 ## 遇到异常
 
-- `screen_off` 或锁屏时，用户已授权远程解锁就调用 `unlock`，成功后重新截图。否则请用户手动解锁。遇到 `rotation`，恢复竖屏后重新取图。
+- `screen_off` 或锁屏时，用户已授权远程解锁就调用 `unlock`，成功后重新截图。否则请用户手动解锁。旋转屏幕后，用新截图重新定位。遇到 `rotation` 或 `rotation_changed` 时，等方向稳定后重新截图。
 - `screen_unlock_failed` 或 `screen_pin_reset_required` 时，请用户手动解锁，在手机上核对 PIN 设置后重启 NinjaTap 服务。遇到 `screen_pin_keypad_unavailable` 时，请用户手动解锁。
 - 触控返回 `contact` 或 `device busy` 时，等现有操作结束，再根据新画面决定下一步。网络在操作途中断开时，动作可能已经发生。先重连并截图确认，尤其注意发送、删除和其他有副作用的操作。
 - 遇到验证码、登录挑战、授权或条款确认，交给用户处理。只执行用户已授权的操作。

@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct InjectRequest {
+    #[serde(default)]
+    pub rotation: u8,
     pub sequence: Vec<Step>,
 }
 
@@ -38,6 +40,7 @@ pub enum Status {
     Ok,
     ScreenOff,
     Rotation,
+    RotationChanged,
     NoDevice,
     Closed,
     Unauthorized,
@@ -65,6 +68,7 @@ mod tests {
             ]
         }"#;
         let request: InjectRequest = serde_json::from_str(raw).unwrap();
+        assert_eq!(request.rotation, 0);
         assert_eq!(
             request.sequence,
             vec![
@@ -94,6 +98,7 @@ mod tests {
             Status::Ok,
             Status::ScreenOff,
             Status::Rotation,
+            Status::RotationChanged,
             Status::NoDevice,
             Status::Closed,
             Status::Unauthorized,
@@ -109,6 +114,7 @@ mod tests {
                 r#"{"status":"ok"}"#,
                 r#"{"status":"screen_off"}"#,
                 r#"{"status":"rotation"}"#,
+                r#"{"status":"rotation_changed"}"#,
                 r#"{"status":"no_device"}"#,
                 r#"{"status":"closed"}"#,
                 r#"{"status":"unauthorized"}"#,

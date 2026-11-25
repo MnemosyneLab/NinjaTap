@@ -17,6 +17,7 @@ from ninjatap.agent import Session
 from ninjatap.cli import main as cli_main
 from ninjatap.guide import GUIDE_URI
 from ninjatap.mcp_server import build_server
+from ninjatap.protocol import Display
 
 
 class McpTest(unittest.TestCase):
@@ -246,10 +247,13 @@ class _Phone:
         self.status = status
         self.calls = 0
 
-    def screencap(self, timeout=None):
-        return b"\x89PNG\r\n\x1a\n"
+    def display(self, timeout=None):
+        return Display()
 
-    def inject(self, steps, timeout=None):
+    def capture(self, timeout=None):
+        return b"\x89PNG\r\n\x1a\n", self.display()
+
+    def inject(self, steps, timeout=None, *, rotation=0):
         self.calls += 1
         if self.status != "ok":
             from ninjatap.client import PhoneError

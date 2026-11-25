@@ -35,6 +35,15 @@ pub fn png() -> Result<Vec<u8>, CaptureError> {
     Ok(output.stdout)
 }
 
+pub fn size(png: &[u8]) -> Option<(i32, i32)> {
+    if png.get(..16)? != b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR" {
+        return None;
+    }
+    let width = i32::from_be_bytes(png.get(16..20)?.try_into().ok()?);
+    let height = i32::from_be_bytes(png.get(20..24)?.try_into().ok()?);
+    Some((width, height))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

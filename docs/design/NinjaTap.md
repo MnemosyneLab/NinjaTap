@@ -16,17 +16,18 @@ App 包名 `com.ninjatap.player`。界面上设置端口、令牌和绑定地址
 
 播放进程只做这些事：
 
-- `GET /screencap`：`/system/bin/screencap -p -d <display-id>`，原样返回 1264×2736 的 PNG
-- `POST /inject`：按序列写 `/dev/input/event6`
+- `GET /screencap`：`/system/bin/screencap -p -d <display-id>`，返回当前屏幕方向的 PNG，并在 `X-NinjaTap-Rotation` 响应头中标记方向
+- `GET /screen`：读取主屏的方向和当前帧尺寸
+- `POST /inject`：接收当前画面的像素坐标及方向，将坐标转回触摸屏原生方向后按序列写入 `/dev/input/event6`
 - 请求头 `Authorization: Bearer <令牌>`
-- 灭屏或旋转不是 0 就拒绝，不写入
+- 灭屏时拒绝截图和触控。当前方向与触控请求中的方向不符时拒绝写入。
 - 进程退出时如果还有触点，先写抬起
 
-坐标是全帧像素。手机把像素乘 8，把电脑给的压力、长短轴和方向原样写入。手机不抽样，也不改这四个数。
+坐标以当前全帧的左上角为原点。手机把转回原生方向后的像素乘 8，把电脑给的压力、长短轴和触点方向原样写入。
 
 手机在写入触控前检查整条轨迹的坐标，轨迹中的等待时间合计最多 15 秒。服务支持并发接收连接和读取请求。请求体最多 256 KiB，读取时限为 5 秒。截图、触控和剪贴板可以并行，每类同时最多执行一个请求。同类请求重叠时返回 `device busy`（HTTP 503）。如果需要手势完成后的画面，等手势命令返回后再截图。
 
-失败时 `status` 为 `screen_off`、`rotation`、`no_device`、`closed`、`unauthorized`、`contact`。
+失败时 `status` 为 `screen_off`、`rotation`、`rotation_changed`、`no_device`、`closed`、`unauthorized`、`contact`。
 
 ## 2. 电脑
 

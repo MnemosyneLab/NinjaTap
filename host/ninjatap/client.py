@@ -11,7 +11,7 @@ from urllib.parse import urlencode, urlsplit
 from urllib3 import HTTPSConnectionPool, HTTPResponse
 from urllib3.exceptions import HTTPError, SSLError
 
-from ninjatap.protocol import Status, Step, sequence_body
+from ninjatap.protocol import Display, Status, Step, sequence_body
 
 
 def _raise_unless_ok(payload: dict, fallback: str = "clipboard failed") -> None:
@@ -53,7 +53,11 @@ class Phone:
         )
 
     def screencap(self, timeout: float | None = None) -> bytes:
-        body = self._open("/screencap", timeout=timeout)
+        return self.capture(timeout)[0]
+
+    def capture(self, timeout: float | None = None) -> tuple[bytes, Display]:
+        response = self._send("GET", "/screencap", timeout=timeout)
+        body = response.data
         # Older players return screen readiness errors as HTTP 200 JSON.
         if not body.startswith(b"\x89PNG"):
             try:
@@ -62,10 +66,28 @@ class Phone:
                 status = None
             if isinstance(status, str) and status != "ok":
                 raise PhoneError(status)
-        return body
+        rotation = response.headers.get("x-ninjatap-rotation", "0")
+        if rotation not in ("0", "1", "2", "3"):
+            raise PhoneError("invalid screenshot rotation")
+        return body, Display(int(rotation))
 
-    def inject(self, steps: list[Step], timeout: float | None = None) -> Status:
-        body = json.dumps(sequence_body(steps)).encode()
+    def display(self, timeout: float | None = None) -> Display:
+        try:
+            body = self._open("/screen", timeout=timeout)
+        except PhoneError as error:
+            if error.status == "not found":
+                # Older players only accept upright portrait touches.
+                return Display()
+            raise
+        payload = json.loads(body)
+        _raise_unless_ok(payload, "could not read the phone display")
+        rotation = payload.get("rotation")
+        if type(rotation) is not int or rotation not in range(4):
+            raise PhoneError("invalid display rotation")
+        return Display(rotation)
+
+    def inject(self, steps: list[Step], timeout: float | None = None, *, rotation: int = 0) -> Status:
+        body = json.dumps(sequence_body(steps, rotation)).encode()
         payload = json.loads(self._open("/inject", body, timeout=timeout).decode())
         return payload["status"]
 

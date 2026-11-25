@@ -4,7 +4,7 @@ import unittest
 
 from ninjatap.elements import ElementList, UnknownElement
 from ninjatap.loop import once
-from ninjatap.protocol import Down
+from ninjatap.protocol import Display, Down
 from ninjatap.trajectory import TAP_JITTER
 from ninjatap.vision.text import Hit, elements_from_hits
 
@@ -43,7 +43,10 @@ class _Phone:
     def __init__(self):
         self.steps = None
 
-    def inject(self, steps):
+    def display(self):
+        return Display()
+
+    def inject(self, steps, *, rotation=0):
         self.steps = steps
         return "ok"
 

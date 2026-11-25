@@ -27,8 +27,8 @@ use crate::auth;
 use crate::capture::{self, CaptureError};
 use crate::clipboard;
 use crate::play::{self, PlayError};
-use crate::protocol::{InjectRequest, InjectResponse, Status};
-use crate::screen::{self, ScreenError};
+use crate::protocol::{InjectRequest, InjectResponse, Status, Step};
+use crate::screen::{self, Rotation, ScreenError};
 use crate::storage;
 use crate::tls;
 
@@ -98,6 +98,7 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
     let mut payload = Default::default();
     let operation = match (&parts.method, parts.uri.path()) {
         (&Method::GET, "/screencap") => Operation::Screencap,
+        (&Method::GET, "/screen") => Operation::Screen,
         (&Method::GET, "/clipboard") => Operation::ReadClipboard,
         (
             &Method::POST,
@@ -129,7 +130,7 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
     // These operations use separate resources. Reject overlap within each
     // category without queuing work on the phone.
     let semaphore = match operation {
-        Operation::Screencap => state.capture.clone(),
+        Operation::Screencap | Operation::Screen => state.capture.clone(),
         Operation::Inject | Operation::Key | Operation::ScreenControl(_) => state.touch,
         Operation::ReadClipboard | Operation::WriteClipboard => state.clipboard,
     };
@@ -150,6 +151,7 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
         let _capture_permit = capture_permit;
         match operation {
             Operation::Screencap => screencap(),
+            Operation::Screen => screen_geometry(),
             Operation::ReadClipboard => read_clipboard(),
             Operation::Inject => inject(&payload),
             Operation::Key => press_key(&payload),
@@ -163,6 +165,7 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
 
 enum Operation {
     Screencap,
+    Screen,
     ReadClipboard,
     Inject,
     Key,
@@ -325,22 +328,71 @@ fn file_error(error: io::Error) -> HttpResponse {
 }
 
 fn screencap() -> HttpResponse {
-    if let Err(response) = ready() {
-        return response;
-    }
-    match capture::png() {
-        Ok(png) => bytes(png, "image/png", 200),
-        Err(CaptureError::Failed) => text("screencap failed\n", 500),
+    let rotation = match ready() {
+        Ok(rotation) => rotation,
+        Err(response) => return response,
+    };
+    let png = match capture::png() {
+        Ok(png) => png,
+        Err(CaptureError::Failed) => return text("screencap failed\n", 500),
+    };
+    match ready() {
+        Ok(after) if rotation == after && capture::size(&png) == Some(rotation.size()) => {
+            let mut response = bytes(png, "image/png", 200);
+            response
+                .headers_mut()
+                .insert("x-ninjatap-rotation", (rotation as u16).into());
+            response
+        }
+        Ok(_) => json_status(Status::RotationChanged, 409),
+        Err(response) => response,
     }
 }
 
+fn screen_geometry() -> HttpResponse {
+    let rotation = match ready() {
+        Ok(rotation) => rotation,
+        Err(response) => return response,
+    };
+    let (width, height) = rotation.size();
+    let body = serde_json::json!({
+        "status": "ok",
+        "rotation": rotation as u8,
+        "width": width,
+        "height": height,
+    });
+    bytes(body.to_string().into_bytes(), "application/json", 200)
+}
+
+fn touch_sequence(steps: &mut [Step], rotation: Rotation) -> bool {
+    for step in steps {
+        if let Step::Down { x, y, .. } | Step::Move { x, y, .. } = step {
+            let Some((native_x, native_y)) = rotation.native_point(*x, *y) else {
+                return false;
+            };
+            (*x, *y) = (native_x, native_y);
+        }
+    }
+    true
+}
+
 fn inject(body: &[u8]) -> HttpResponse {
-    let request: InjectRequest = match serde_json::from_slice(body) {
+    let mut request: InjectRequest = match serde_json::from_slice(body) {
         Ok(request) => request,
         Err(_) => return text("bad json\n", 400),
     };
-    if let Err(response) = ready() {
-        return response;
+    let Some(expected) = Rotation::from_android(request.rotation) else {
+        return text("rotation must be between 0 and 3\n", 400);
+    };
+    let rotation = match ready() {
+        Ok(rotation) => rotation,
+        Err(response) => return response,
+    };
+    if rotation != expected {
+        return json_status(Status::RotationChanged, 409);
+    }
+    if !touch_sequence(&mut request.sequence, rotation) {
+        return text("coordinate out of range\n", 400);
     }
     match play::play(&request.sequence) {
         Ok(()) => json_status(Status::Ok, 200),
@@ -390,9 +442,9 @@ fn clip_body(status: &str, text: Option<String>, detail: Option<String>) -> Http
     )
 }
 
-fn ready() -> Result<(), HttpResponse> {
+fn ready() -> Result<Rotation, HttpResponse> {
     match screen::ensure_ready() {
-        Ok(()) => Ok(()),
+        Ok(rotation) => Ok(rotation),
         Err(ScreenError::Unreadable) => Err(text("screen check failed\n", 500)),
         Err(ScreenError::Blocked(status)) => Err(json_status(status, 200)),
     }

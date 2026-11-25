@@ -5,7 +5,7 @@ import sys
 from mcp.server.mcpserver import Image, MCPServer
 from typing_extensions import TypedDict
 
-from ninjatap.agent import HEIGHT, WIDTH, Session, save_png
+from ninjatap.agent import Session, save_png
 from ninjatap.guide import GUIDE_URI, read_guide
 from ninjatap.trajectory import HOLD_DRAG_MS
 
@@ -13,7 +13,8 @@ INSTRUCTIONS = f"""This server drives one HONOR DNY-NX9.
 
 Start with screenshot (PNG by default). Set ocr=true to locate visible text when
 useful, and use the PNG to verify icons, images, and uncertain labels. Coordinates
-refer to the original {WIDTH}×{HEIGHT} portrait frame, with the origin at the top left.
+refer to the latest full frame in the current orientation, with the origin at the top left.
+If you receive rotation_changed, take a new screenshot before choosing coordinates.
 
 Use tap for ordinary buttons and cards. Save tap_exact for small targets or when
 you need a fixed coordinate. Use back and home for Android navigation. Wait for

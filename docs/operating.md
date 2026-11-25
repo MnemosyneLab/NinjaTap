@@ -2,7 +2,7 @@
 
 CLI 和 MCP 的通用操作见 [Agent 操作指南](../host/ninjatap/guide.md)。这里记录这台 HONOR DNY-NX9 的实测细节。另见 [设计](design/NinjaTap.md) 和 [触控实测](devices/DNY-NX9.md)。
 
-屏幕是 1264×2736，原点在左上角，旋转必须是 0。工具报错就停，不要接着编下一个坐标。`screen_off` 表示屏幕灭了，此时截图和触控会被拒绝。已在手机设置 PIN 时，可以用 `unlock` 请求解锁。
+竖屏截图是 1264×2736，横屏截图是 2736×1264，坐标原点都在当前画面的左上角。下文的实测坐标取自竖屏。工具报错就停，不要接着编下一个坐标。`screen_off` 表示屏幕灭了，此时截图和触控会被拒绝。已在手机设置 PIN 时，可以用 `unlock` 请求解锁。
 
 在 HONOR DNY-NX9 上通过 Wi-Fi 验证了 MCP 锁屏后等待 18 秒，再从灭屏状态解锁。MagicOS 此时已冻结 App 进程，NinjaTap 的原生播放器先唤醒手机，再把解锁请求交给 App。
 

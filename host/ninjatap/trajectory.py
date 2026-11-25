@@ -30,7 +30,8 @@ HOLD_DRIFT_PX = 4
 
 
 def tap(
-    x: int, y: int, finger: int = 0, rng: random.Random | None = None, *, exact: bool = False
+    x: int, y: int, finger: int = 0, rng: random.Random | None = None,
+    *, exact: bool = False, size: tuple[int, int] = (WIDTH, HEIGHT),
 ) -> list[Step]:
     """Hold one point for about 60ms, then lift. Exact taps keep the given coordinates."""
     rng = _rng(rng)
@@ -38,11 +39,13 @@ def tap(
         x += rng.randint(-TAP_JITTER, TAP_JITTER)
         y += rng.randint(-TAP_JITTER, TAP_JITTER)
     gaps = _frames(TAP_MS, TAP_MS_JITTER, rng, minimum=1)
-    return _finger_steps(x, y, [FRAME_MS * i for i in range(gaps + 1)], finger, rng)
+    ages = [FRAME_MS * i for i in range(gaps + 1)]
+    return _place([(x, y)] * len(ages), ages, finger, rng, size=size)
 
 
 def drag(
-    x1: int, y1: int, x2: int, y2: int, finger: int = 0, rng: random.Random | None = None
+    x1: int, y1: int, x2: int, y2: int, finger: int = 0, rng: random.Random | None = None,
+    *, size: tuple[int, int] = (WIDTH, HEIGHT),
 ) -> list[Step]:
     """Curve to the end, brake, hold, then lift.
 
@@ -61,11 +64,12 @@ def drag(
     points = _bow(x1, y1, x2, y2, progress, rng)
     points.extend([(x2, y2)] * hold_frames)
     ages = [FRAME_MS * i for i in range(len(points))]
-    return _place(points, ages, finger, rng)
+    return _place(points, ages, finger, rng, size=size)
 
 
 def long_press(
-    x: int, y: int, ms: int, finger: int = 0, rng: random.Random | None = None
+    x: int, y: int, ms: int, finger: int = 0, rng: random.Random | None = None,
+    *, size: tuple[int, int] = (WIDTH, HEIGHT),
 ) -> list[Step]:
     """Hold near one point for about ``ms``, then lift.
 
@@ -94,7 +98,7 @@ def long_press(
             px, py = _quad((x, y), ctrl, end, t)
             points.append((int(round(px)), int(round(py))))
     ages = [FRAME_MS * i for i in range(count + 1)]
-    return _place(points, ages, finger, rng, wander=True)
+    return _place(points, ages, finger, rng, size=size, wander=True)
 
 
 def hold_drag(
@@ -105,6 +109,8 @@ def hold_drag(
     ms: int = HOLD_DRAG_MS,
     finger: int = 0,
     rng: random.Random | None = None,
+    *,
+    size: tuple[int, int] = (WIDTH, HEIGHT),
 ) -> list[Step]:
     """Hold near the start, then curve to the end without lifting.
 
@@ -147,11 +153,13 @@ def hold_drag(
     points.extend(_bow(hx, hy, x2, y2, progress, rng, amplitude=(8, 16))[1:])
     settle = _frames(HOLD_DRAG_SETTLE_MS, HOLD_DRAG_SETTLE_JITTER, rng, minimum=2)
     points.extend([(x2, y2)] * settle)
-    return _place(points, [FRAME_MS * i for i in range(len(points))], finger, rng, wander=True)
+    ages = [FRAME_MS * i for i in range(len(points))]
+    return _place(points, ages, finger, rng, size=size, wander=True)
 
 
 def slow_drag(
-    x1: int, y1: int, x2: int, y2: int, finger: int = 0, rng: random.Random | None = None
+    x1: int, y1: int, x2: int, y2: int, finger: int = 0, rng: random.Random | None = None,
+    *, size: tuple[int, int] = (WIDTH, HEIGHT),
 ) -> list[Step]:
     """Curve to the end and lift while the point is still creeping.
 
@@ -168,11 +176,12 @@ def slow_drag(
     slope = min(0.85, max(0.05, last_px / max(length, 1.0) * count))
     points = _bow(x1, y1, x2, y2, _settle(count, slope, rng), rng)
     _keep_lift_moving(points)
-    return _place(points, [FRAME_MS * i for i in range(len(points))], finger, rng)
+    return _place(points, [FRAME_MS * i for i in range(len(points))], finger, rng, size=size)
 
 
 def flick(
-    x1: int, y1: int, x2: int, y2: int, finger: int = 0, rng: random.Random | None = None
+    x1: int, y1: int, x2: int, y2: int, finger: int = 0, rng: random.Random | None = None,
+    *, size: tuple[int, int] = (WIDTH, HEIGHT),
 ) -> list[Step]:
     """Gain speed for about 250ms and lift while the point is still moving quickly.
 
@@ -182,7 +191,7 @@ def flick(
     rng = _rng(rng)
     count = _frames(FLICK_RISE_MS, FLICK_MS_JITTER, rng, minimum=10)
     points = _bow(x1, y1, x2, y2, _rush(count, rng), rng, amplitude=(4, 16))
-    return _place(points, [FRAME_MS * i for i in range(len(points))], finger, rng)
+    return _place(points, [FRAME_MS * i for i in range(len(points))], finger, rng, size=size)
 
 
 def pinch(
@@ -234,10 +243,6 @@ def pinch(
     return steps
 
 
-def _finger_steps(x: int, y: int, ages: list[int], finger: int, rng: random.Random) -> list[Step]:
-    return _place([(x, y)] * len(ages), ages, finger, rng)
-
-
 def _frames(ms: int, jitter: int, rng: random.Random, minimum: int = 2) -> int:
     """Frame count for a duration that may sit ``jitter`` ms to either side."""
     drawn = ms + rng.randint(-jitter, jitter)
@@ -249,16 +254,19 @@ def _place(
     ages: list[int],
     finger: int,
     rng: random.Random,
+    *,
+    size: tuple[int, int],
     wander: bool = False,
 ) -> list[Step]:
+    width, height = size
     feel = _feel(ages, rng, wander=wander)
     steps: list[Step] = []
     for i, ((x, y), sample) in enumerate(zip(points, feel)):
         kind = Down if i == 0 else Move
         if i:
             steps.append(Sleep(ms=FRAME_MS))
-        x = min(WIDTH - 1, max(0, x))
-        y = min(HEIGHT - 1, max(0, y))
+        x = min(width - 1, max(0, x))
+        y = min(height - 1, max(0, y))
         steps.append(_contact(kind, x, y, finger, sample))
     steps.append(Up(id=finger))
     return steps

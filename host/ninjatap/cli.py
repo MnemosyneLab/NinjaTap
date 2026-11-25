@@ -6,7 +6,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver.exceptions import ToolError
 
-from ninjatap.agent import HEIGHT, MAX_TAPS, WIDTH, Session, save_png
+from ninjatap.agent import MAX_TAPS, Session, save_png
 from ninjatap.guide import read_guide
 from ninjatap.trajectory import HOLD_DRAG_MS
 
@@ -14,7 +14,7 @@ from ninjatap.trajectory import HOLD_DRAG_MS
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ninjatap",
-        description=f"Control the phone using {WIDTH}×{HEIGHT} screen coordinates.",
+        description="Control the phone using pixel coordinates from its current screen.",
         epilog=(
             "Use ninjatap guide for workflows and ninjatap COMMAND --help for syntax. "
             "Set NINJATAP_URL, NINJATAP_SECRET, and NINJATAP_TLS_FINGERPRINT in the project .env or command environment."

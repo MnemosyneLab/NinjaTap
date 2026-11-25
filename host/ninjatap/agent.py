@@ -13,7 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 
 from ninjatap.client import Phone, PhoneError
 from ninjatap.elements import Element
-from ninjatap.protocol import HEIGHT, WIDTH, Down, Move, Sleep, Step
+from ninjatap.protocol import HEIGHT, WIDTH, Display, Down, Move, Sleep, Step
 from ninjatap.trajectory import HOLD_DRAG_MS, drag, flick, hold_drag, long_press, pinch, slow_drag, tap
 from ninjatap.vision.text import read_text
 
@@ -25,11 +25,12 @@ MAX_PINCH_GAP = math.ceil(math.hypot(WIDTH - 1, HEIGHT - 1))
 
 
 class Session:
-    """One phone. Gestures are generated here and played unchanged on the device."""
+    """One phone. Coordinates refer to the current screenshot."""
 
     def __init__(self, phone: Phone, recognize=read_text):
         self.phone = phone
         self.recognize = recognize
+        self._screenshot_display: Display | None = None
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str | None] | None = None) -> "Session":
@@ -52,9 +53,10 @@ class Session:
         if ocr is not None and no_ocr is not None:
             raise ToolError("ocr and no_ocr are mutually exclusive")
         recognize = ocr if ocr is not None else no_ocr is False
-        png = self._request(lambda timeout: self.phone.screencap(timeout=timeout), 30)
+        png, display = self._request(self.phone.capture, 30)
         if not png.startswith(b"\x89PNG"):
             raise ToolError("screencap did not return a PNG")
+        self._screenshot_display = display
         if not recognize:
             return png, ""
         try:
@@ -64,13 +66,15 @@ class Session:
         return png, text
 
     def tap(self, x: int, y: int) -> str:
-        self._point(x, y)
-        self._play(tap(x, y))
+        display = self._display()
+        self._point(x, y, display)
+        self._play(tap(x, y, size=display.size), display)
         return "ok"
 
     def tap_exact(self, x: int, y: int) -> str:
-        self._point(x, y)
-        self._play(tap(x, y, exact=True))
+        display = self._display()
+        self._point(x, y, display)
+        self._play(tap(x, y, exact=True, size=display.size), display)
         return "ok"
 
     def back(self) -> str:
@@ -90,65 +94,73 @@ class Session:
             raise ToolError("taps needs at least one point")
         if len(points) > MAX_TAPS:
             raise ToolError(f"taps accepts at most {MAX_TAPS} points")
+        display = self._display()
         for x, y in points:
-            self._point(x, y)
+            self._point(x, y, display)
         rng = random.Random()
         steps: list[Step] = []
         for index, (x, y) in enumerate(points):
             if index:
                 steps.append(Sleep(ms=rng.randint(TAP_GAP_MS[0], TAP_GAP_MS[1])))
-            steps.extend(tap(x, y, rng=rng))
-        self._play(steps)
+            steps.extend(tap(x, y, rng=rng, size=display.size))
+        self._play(steps, display)
         return "ok"
 
     def long_press(self, x: int, y: int, ms: int) -> str:
-        self._point(x, y)
+        display = self._display()
+        self._point(x, y, display)
         self._hold_duration(ms)
-        self._play(long_press(x, y, ms))
+        self._play(long_press(x, y, ms, size=display.size), display)
         return "ok"
 
     def hold_drag(self, x1: int, y1: int, x2: int, y2: int, ms: int = HOLD_DRAG_MS) -> str:
-        self._point(x1, y1)
-        self._point(x2, y2)
-        if x1 < HOLD_EDGE or x1 >= WIDTH - HOLD_EDGE:
+        display = self._display()
+        self._point(x1, y1, display)
+        self._point(x2, y2, display)
+        width, _ = display.size
+        if x1 < HOLD_EDGE or x1 >= width - HOLD_EDGE:
             raise ToolError(
                 f"hold_drag must start at least {HOLD_EDGE} px from the left and right edges"
             )
         self._hold_duration(ms)
-        self._play(hold_drag(x1, y1, x2, y2, ms=ms))
+        self._play(hold_drag(x1, y1, x2, y2, ms=ms, size=display.size), display)
         return "ok"
 
     def drag(self, x1: int, y1: int, x2: int, y2: int) -> str:
-        self._point(x1, y1)
-        self._point(x2, y2)
-        self._play(drag(x1, y1, x2, y2))
+        display = self._display()
+        self._point(x1, y1, display)
+        self._point(x2, y2, display)
+        self._play(drag(x1, y1, x2, y2, size=display.size), display)
         return "ok"
 
     def slow_drag(self, x1: int, y1: int, x2: int, y2: int) -> str:
-        self._point(x1, y1)
-        self._point(x2, y2)
-        self._play(slow_drag(x1, y1, x2, y2))
+        display = self._display()
+        self._point(x1, y1, display)
+        self._point(x2, y2, display)
+        self._play(slow_drag(x1, y1, x2, y2, size=display.size), display)
         return "ok"
 
     def flick(self, x1: int, y1: int, x2: int, y2: int) -> str:
-        self._point(x1, y1)
-        self._point(x2, y2)
-        self._play(flick(x1, y1, x2, y2))
+        display = self._display()
+        self._point(x1, y1, display)
+        self._point(x2, y2, display)
+        self._play(flick(x1, y1, x2, y2, size=display.size), display)
         return "ok"
 
     def pinch(self, cx: int, cy: int, start_gap: int, end_gap: int) -> str:
-        self._point(cx, cy)
+        display = self._display()
+        self._point(cx, cy, display)
         if not (1 <= start_gap <= MAX_PINCH_GAP and 1 <= end_gap <= MAX_PINCH_GAP):
             raise ToolError(f"gaps must be between 1 and {MAX_PINCH_GAP} px")
         rng = random.Random()
         for _ in range(8):
             steps = pinch(cx, cy, start_gap, end_gap, rng=rng)
             if all(
-                0 <= step.x < WIDTH and 0 <= step.y < HEIGHT
+                display.contains(step.x, step.y)
                 for step in steps
                 if isinstance(step, (Down, Move))
             ):
-                self._play(steps)
+                self._play(steps, display)
                 return "ok"
         raise ToolError("pinch does not fit on the screen; move the center inward or reduce the gaps")
 
@@ -173,10 +185,13 @@ class Session:
             raise ToolError(str(exc)) from exc
         return f"Uploaded {size} bytes to {remote_path}"
 
-    def _play(self, steps: list[Step]) -> None:
+    def _display(self) -> Display:
+        return self._screenshot_display or self._request(self.phone.display, 10)
+
+    def _play(self, steps: list[Step], display: Display) -> None:
         waits = sum(step.ms for step in steps if isinstance(step, Sleep))
         status = self._request(
-            lambda timeout: self.phone.inject(steps, timeout=timeout),
+            lambda timeout: self.phone.inject(steps, timeout=timeout, rotation=display.rotation),
             20 + waits / 1000,
         )
         if status != "ok":
@@ -190,8 +205,8 @@ class Session:
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise ToolError(f"phone unreachable: {exc}") from exc
 
-    def _point(self, x: int, y: int) -> None:
-        if not (0 <= x < WIDTH and 0 <= y < HEIGHT):
+    def _point(self, x: int, y: int, display: Display) -> None:
+        if not display.contains(x, y):
             raise ToolError(f"point outside the screen: {x}, {y}")
 
     def _hold_duration(self, ms: int) -> None:

@@ -5,11 +5,12 @@ from random import Random
 from unittest.mock import patch
 
 from mcp.server.mcpserver.exceptions import ToolError
+from urllib3.response import HTTPResponse
 
 from ninjatap.agent import HEIGHT, HOLD_EDGE, MAX_HOLD_MS, WIDTH, Session, format_elements
 from ninjatap.client import Phone, PhoneError
 from ninjatap.elements import Element
-from ninjatap.protocol import Down, Move, Sleep, Up
+from ninjatap.protocol import Display, Down, Move, Sleep, Up
 
 
 class AgentTest(unittest.TestCase):
@@ -34,7 +35,7 @@ class AgentTest(unittest.TestCase):
         phone = Phone("https://fixture", "test-token", "ab" * 32)
         for status in ("screen_off", "rotation"):
             with self.subTest(status=status), patch.object(
-                phone, "_open", return_value=f'{{"status":"{status}"}}'.encode()
+                phone, "_send", return_value=HTTPResponse(body=f'{{"status":"{status}"}}'.encode())
             ):
                 with self.assertRaisesRegex(ToolError, f"^{status}$"):
                     Session(phone).screenshot()
@@ -116,6 +117,22 @@ class AgentTest(unittest.TestCase):
         positions = {(step.x, step.y) for step in phone.steps if isinstance(step, (Down, Move))}
         self.assertEqual(positions, {(632, 1500)})
 
+    def test_landscape_touch_uses_screenshot_coordinates_and_rotation(self):
+        phone = _Phone(rotation=1)
+        session = Session(phone)
+        session.screenshot()
+        self.assertEqual(session.tap_exact(2000, 900), "ok")
+        self.assertEqual(phone.injected_rotation, 1)
+        self.assertEqual(
+            {(step.x, step.y) for step in phone.steps if isinstance(step, (Down, Move))},
+            {(2000, 900)},
+        )
+        with self.assertRaisesRegex(ToolError, "outside the screen"):
+            session.tap_exact(900, 2000)
+        phone.rotation = 3
+        with self.assertRaisesRegex(ToolError, "rotation_changed"):
+            session.tap_exact(2000, 900)
+
     def test_back_and_home_send_separate_android_keys(self):
         phone = Phone("https://fixture", "test-token", "ab" * 32)
         with patch.object(phone, "_open", return_value=b'{"status":"ok"}') as request:
@@ -192,22 +209,28 @@ def _element(text: str, cx: int, cy: int) -> Element:
 
 
 class _Phone:
-    def __init__(self, png=b"\x89PNG", status="ok"):
+    def __init__(self, png=b"\x89PNG", status="ok", rotation=0):
         self.png = png
         self.status = status
         self.steps = None
         self.calls = 0
         self.clipboard = ""
+        self.rotation = rotation
+        self.injected_rotation = None
 
-    def screencap(self, timeout=None):
-        return self.png
+    def display(self, timeout=None):
+        return Display(self.rotation)
 
-    def inject(self, steps, timeout=None):
+    def capture(self, timeout=None):
+        return self.png, self.display()
+
+    def inject(self, steps, timeout=None, *, rotation=0):
         self.calls += 1
         self.steps = steps
+        self.injected_rotation = rotation
         if self.status != "ok":
             raise PhoneError(self.status)
-        return self.status
+        return "ok" if rotation == self.rotation else "rotation_changed"
 
     def read_clipboard(self, timeout=None):
         if self.status != "ok":
