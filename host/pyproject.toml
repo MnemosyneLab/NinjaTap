@@ -1,0 +1,20 @@
+[project]
+name = "ninjatap-host"
+version = "0.0.0"
+description = "Local MCP server that drives one phone."
+requires-python = ">=3.11"
+dependencies = ["mcp>=2.3,<3", "python-dotenv>=1.0,<2", "urllib3>=2,<3", "typing-extensions>=4"]
+
+[project.scripts]
+ninjatap = "ninjatap.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ninjatap*"]
+
+[tool.setuptools.package-data]
+"ninjatap" = ["guide.md"]
+"ninjatap.vision" = ["recognize.swift"]

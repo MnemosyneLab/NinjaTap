@@ -1,0 +1,31 @@
+.DS_Store
+
+# Captured touch and logcat sessions
+touchtest/logs/
+
+tmp/
+research/
+
+# Local Android build output
+*.apk
+*.dex
+*.class
+build/
+.gradle/
+local.properties
+.env
+*.keystore
+
+# IDE
+.idea/
+*.iml
+
+# Phone player
+phone/target/
+
+# Computer side
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+host/.build/

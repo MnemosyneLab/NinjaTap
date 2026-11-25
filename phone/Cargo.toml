@@ -1,0 +1,21 @@
+[package]
+name = "ninjatap"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "On-device player for one HONOR DNY-NX9. It serves screencap and writes touch frames."
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "query", "tokio"] }
+axum-server = { version = "0.9", features = ["tls-rustls-ring"] }
+futures-util = { version = "0.3", default-features = false }
+http-body-util = "0.1"
+rcgen = "0.14"
+ring = "0.17"
+rustix = { version = "1", features = ["fs"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["io"] }

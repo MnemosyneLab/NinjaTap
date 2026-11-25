@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NinjaTap</string>
+    <string name="status_stopped">未运行</string>
+    <string name="status_starting">正在启动</string>
+    <string name="status_running">运行中</string>
+    <string name="status_failed">启动失败</string>
+    <string name="status_listening">正在监听 %1$s</string>
+    <string name="service_title">手机控制服务</string>
+    <string name="service_idle">启动后，电脑可通过 Wi-Fi 控制这台手机。</string>
+    <string name="service_starting">正在准备 HTTPS 连接。</string>
+    <string name="service_running">已接受局域网 HTTPS 连接。</string>
+    <string name="service_failed">检查下面的错误，再重试。</string>
+    <string name="action_start">开启服务</string>
+    <string name="action_stop">停止服务</string>
+    <string name="pairing_title">Wi-Fi 配对</string>
+    <string name="pairing_pending">开启服务后，会显示配对地址和证书指纹。</string>
+    <string name="label_url">HTTPS 地址</string>
+    <string name="label_fingerprint">SHA-256 证书指纹</string>
+    <string name="copy">复制</string>
+    <string name="copy_url">复制 HTTPS 地址</string>
+    <string name="copy_fingerprint">复制证书指纹</string>
+    <string name="copy_token">复制令牌</string>
+    <string name="copy_config">复制 .env</string>
+    <string name="copy_config_description">复制包含地址、证书指纹和令牌的 .env 配置</string>
+    <string name="copy_done">已复制</string>
+    <string name="copy_failed">无法访问剪贴板</string>
+    <string name="settings_title">服务设置</string>
+    <string name="settings_locked">停止服务后可以修改这些设置。</string>
+    <string name="label_port">端口</string>
+    <string name="label_token">访问令牌</string>
+    <string name="label_bind">监听地址</string>
+    <string name="refresh_addresses">刷新地址</string>
+    <string name="addresses_refreshed">已刷新地址</string>
+    <string name="show_token">显示令牌</string>
+    <string name="hide_token">隐藏令牌</string>
+    <string name="rotate_token">更换令牌</string>
+    <string name="rotate_token_detail">更换后，请更新电脑上的 NINJATAP_SECRET 再重新连接。</string>
+    <string name="invalid_port">端口必须是 1 到 65535 之间的整数。</string>
+    <string name="invalid_token">令牌不能为空，也不能包含空白字符。</string>
+    <string name="missing_bind">请选择一个监听地址。</string>
+    <string name="hint_root">服务需要 KernelSU 的 root 授权。手机重启后，打开 NinjaTap 手动开启服务。</string>
+    <string name="channel_name">服务状态</string>
+</resources>
