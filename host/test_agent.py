@@ -132,6 +132,18 @@ class AgentTest(unittest.TestCase):
             Session(phone).tap(10, 10)
         self.assertIn("screen_off", str(caught.exception))
 
+    def test_screen_control_sends_no_credential(self):
+        phone = Phone("https://fixture", "test-token", "ab" * 32)
+        session = Session(phone)
+        with patch.object(phone, "_open", return_value=b'{"status":"ok"}') as request:
+            for command, timeout in (("lock", 20), ("unlock", 25)):
+                self.assertEqual(getattr(session, command)(), "ok")
+                request.assert_called_once_with(f"/screen/{command}", b"", timeout)
+                request.reset_mock()
+        with patch.object(phone, "_open", side_effect=PhoneError("screen_pin_reset_required")):
+            with self.assertRaisesRegex(ToolError, "screen_pin_reset_required"):
+                session.unlock()
+
     def test_hold_drag_is_one_contact_and_rejects_a_side_start(self):
         phone = _Phone()
         self.assertEqual(Session(phone).hold_drag(400, 800, 900, 1500), "ok")

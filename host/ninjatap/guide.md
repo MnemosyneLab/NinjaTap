@@ -1,6 +1,6 @@
 # NinjaTap Agent 操作指南
 
-适用于通过 CLI 或 MCP 操作已配对的 HONOR DNY-NX9。手机需要亮屏、保持竖屏，并运行 NinjaTap 服务。CLI 的 `ninjatap <命令> --help` 可查看参数。MCP 使用同名工具和命名参数。
+适用于通过 CLI 或 MCP 操作已配对的 HONOR DNY-NX9。手机需要运行 NinjaTap 服务，截图和触控还需要亮屏并保持竖屏。CLI 的 `ninjatap <命令> --help` 可查看参数。MCP 使用同名工具和命名参数。
 
 ## 默认操作循环
 
@@ -16,6 +16,8 @@
 | --- | --- |
 | 回桌面后打开应用 | `home`，截图定位应用图标，再 `tap X Y` |
 | 关闭菜单、返回上一页 | `back`，再截图确认回到了哪一层 |
+| 按用户要求锁屏 | `lock`，锁屏并关闭显示 |
+| 按用户要求亮屏解锁 | `unlock`，使用事先保存在手机 App 内的 6 位锁屏 PIN |
 | 缓慢阅读信息流 | `slow_drag X1 Y1 X2 Y2`，从正文或卡片的空白处起手 |
 | 快速翻页、甩动列表 | `flick X1 Y1 X2 Y2`，横滑从屏幕内侧起手以避开系统返回手势 |
 | 拖动控件到指定位置 | `drag X1 Y1 X2 Y2`，到终点会稍作停留 |
@@ -32,6 +34,7 @@
 
 ## 遇到异常
 
-- `screen_off` 或锁屏时，请用户点亮或解锁。遇到 `rotation`，恢复竖屏后重新取图。
+- `screen_off` 或锁屏时，用户已授权远程解锁就调用 `unlock`，成功后重新截图。否则请用户手动解锁。遇到 `rotation`，恢复竖屏后重新取图。
+- `screen_unlock_failed` 或 `screen_pin_reset_required` 时，请用户手动解锁，在手机上核对 PIN 设置后重启 NinjaTap 服务。遇到 `screen_pin_keypad_unavailable` 时，请用户手动解锁。
 - 触控返回 `contact` 或 `device busy` 时，等现有操作结束，再根据新画面决定下一步。网络在操作途中断开时，动作可能已经发生。先重连并截图确认，尤其注意发送、删除和其他有副作用的操作。
 - 遇到验证码、登录挑战、授权或条款确认，交给用户处理。只执行用户已授权的操作。

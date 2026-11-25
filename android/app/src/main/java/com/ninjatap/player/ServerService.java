@@ -107,7 +107,7 @@ public final class ServerService extends Service {
     }
 
     private void launch(int ticket, String bind, int port, String token, String reachable) {
-        try {
+        try (ScreenControlBridge screen = new ScreenControlBridge(this, () -> ticket == generation.get())) {
             runSu("kill $(pidof ninjatap) >/dev/null 2>&1; rm -f /data/local/tmp/ninjatap.pid; exit 0");
             installBinary();
             if (ticket != generation.get()) {
@@ -118,6 +118,7 @@ public final class ServerService extends Service {
                     + "export NINJATAP_BIND=" + quote(bind + ":" + port) + "; "
                     + "export NINJATAP_SECRET=" + quote(token) + "; "
                     + "export NINJATAP_TLS_IDENTITY=" + quote(identity.getAbsolutePath()) + "; "
+                    + "export NINJATAP_SCREEN_SOCKET=" + quote(screen.name) + "; "
                     + "exec /data/local/tmp/ninjatap";
             Process process = new ProcessBuilder("/system/bin/su", "-c", command).start();
             StringBuilder log = new StringBuilder();

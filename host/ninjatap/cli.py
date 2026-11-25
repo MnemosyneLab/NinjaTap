@@ -46,6 +46,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     commands.add_parser("back", help="Send Android Back")
     commands.add_parser("home", help="Go to the Android home screen")
+    commands.add_parser("lock", help="Lock the Android screen")
+    commands.add_parser("unlock", help="Wake and unlock Android using the PIN saved on the phone")
 
     taps = commands.add_parser("taps", help=f"Tap up to {MAX_TAPS} points in one gesture")
     taps.add_argument("coordinates", metavar="COORD", type=int, nargs="+", help="Pairs of x y coordinates")

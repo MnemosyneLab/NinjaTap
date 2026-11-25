@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NinjaTap" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.NinjaTap" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/background</item>
-        <item name="android:navigationBarColor">@color/background</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:navigationBarColor">@color/navigation_surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:textColor">@color/ink</item>
         <item name="colorAccent">@color/accent</item>
         <item name="colorControlNormal">@color/muted</item>
-        <item name="colorControlHighlight">#2AA8E8BD</item>
+        <item name="colorControlHighlight">@color/accent_ripple</item>
+        <item name="alertDialogTheme">@style/Theme.NinjaTap.Dialog</item>
+    </style>
+
+    <style name="Theme.NinjaTap.Dialog" parent="ThemeOverlay.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_surface</item>
+        <item name="colorAccent">@color/accent</item>
+        <item name="colorControlNormal">@color/muted</item>
     </style>
 </resources>

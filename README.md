@@ -19,6 +19,12 @@ App 拉起的是 `phone/` 里的播放程序。它提供 `GET /screencap` 和 `P
 
 `touchtest/` 是测量页，用来记录 `MotionEvent`。它不需要 root。
 
+### 远程锁屏与解锁
+
+在手机 App 的「设置」→「远程锁屏与解锁」里保存当前 6 位锁屏 PIN，再到「控制」页开启服务。电脑上的 CLI 和 MCP 都可以用 `lock` 和 `unlock`。两条命令通过 Wi-Fi 上的配对 HTTPS 连接和手机端 KernelSU 执行，解锁适配 HONOR DNY-NX9 的系统锁屏。
+
+PIN 由 Android Keystore 加密，电脑只发锁屏或解锁指令。手机点亮后向系统 PIN 界面发送数字键，确认已解锁才返回成功。一次输入未能确认成功时，先手动解锁，在手机上核对 PIN 设置后重启 NinjaTap 服务。手机重启后，先手动解锁并开启 NinjaTap 服务。
+
 ## 电脑
 
 `host/` 提供 CLI 和 stdio MCP 服务。两者都使用手机 App 界面上显示的 HTTPS 地址、令牌和 SHA-256 证书指纹。
@@ -31,7 +37,7 @@ python3 -m venv .venv
 
 ### 首次配对
 
-用新版 App 启动服务。手机会生成证书并保存在 App 私有目录，重启服务后继续使用同一张。在「Wi-Fi 配对」卡片里可以分别复制地址和指纹，也可以一键复制完整配置。把这三个值写入项目根目录的 `.env`：
+用新版 App 启动服务。手机会生成证书并保存在 App 私有目录，重启服务后继续使用同一张。在底栏「配对」页可以分别复制地址和指纹，也可以一键复制完整配置。把这三个值写入项目根目录的 `.env`：
 
 ```dotenv
 NINJATAP_URL=https://192.0.2.10:8787
@@ -52,6 +58,8 @@ ninjatap screenshot ./screen.png
 ninjatap screenshot --ocr ./screen.png
 ninjatap back
 ninjatap home
+ninjatap lock
+ninjatap unlock
 ninjatap tap 410 980
 ninjatap tap_exact 410 980
 ninjatap taps 410 980 520 980

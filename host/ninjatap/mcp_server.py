@@ -25,6 +25,7 @@ Use pull and push with actual file paths under /sdcard. When transferring a save
 photo, confirm its filename in the Files app first. If an action times out, check
 the screen before retrying because the phone may already have performed it.
 Hand verification, permission prompts, and terms of service back to the user.
+Use lock and unlock when requested. Unlock uses the PIN configured on the phone.
 
 Read the full operating guide at {GUIDE_URI}.
 """
@@ -83,6 +84,16 @@ def build_server(session: Session) -> MCPServer:
     def home() -> str:
         """Go to the Android home screen."""
         return session.home()
+
+    @server.tool()
+    def lock() -> str:
+        """Lock the Android screen and turn the display off."""
+        return session.lock()
+
+    @server.tool()
+    def unlock() -> str:
+        """Wake and unlock the screen using the PIN configured in the phone app."""
+        return session.unlock()
 
     @server.tool()
     def taps(points: list[_TapPoint]) -> str:

@@ -79,6 +79,12 @@ class Session:
     def home(self) -> str:
         return self._request(lambda timeout: self.phone.press_key("home", timeout=timeout), 20)
 
+    def lock(self) -> str:
+        return self._request(lambda timeout: self.phone.set_screen_locked(True, timeout=timeout), 20)
+
+    def unlock(self) -> str:
+        return self._request(lambda timeout: self.phone.set_screen_locked(False, timeout=timeout), 25)
+
     def taps(self, points: list[tuple[int, int]]) -> str:
         if not points:
             raise ToolError("taps needs at least one point")

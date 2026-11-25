@@ -1,6 +1,7 @@
 package com.ninjatap.player;
 
 import android.Manifest;
+import android.app.KeyguardManager;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
@@ -15,15 +16,20 @@ import android.net.Network;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.text.InputType;
 import android.text.method.PasswordTransformationMethod;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -33,16 +39,25 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.NetworkInterface;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public final class MainActivity extends AppCompatActivity implements ServerService.Listener {
     private static final String PREFS = "ninjatap";
+    private static final String SELECTED_PAGE = "selected_page";
     private static final int DEFAULT_PORT = 8787;
+    private static final int CONTROL = 0;
+    private static final int PAIRING = 1;
+    private static final int SETTINGS = 2;
+    private static final int[] PAGE_IDS = {R.id.page_control, R.id.page_pairing, R.id.page_settings};
+    private static final int[] NAV_IDS = {R.id.nav_control, R.id.nav_pairing, R.id.nav_settings};
 
     private EditText portField;
     private EditText tokenField;
@@ -61,6 +76,14 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
     private Button showToken;
     private Button copyToken;
     private Button rotateToken;
+    private Button configurePin;
+    private TextView screenControlStatus;
+    private TextView controlPinStatus;
+    private ScreenPin screenPin;
+    private OnBackPressedCallback backToControl;
+    private int selectedPage;
+    private final SharedPreferences.OnSharedPreferenceChangeListener pinStatusChanged =
+            (preferences, key) -> updateScreenControl();
     private final List<String> addresses = new ArrayList<>();
     private String wlanAddress = "";
     private boolean tokenVisible;
@@ -71,10 +94,20 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_main);
         View dashboard = findViewById(R.id.dashboard);
+        View appBar = findViewById(R.id.app_bar);
+        View bottomNavigation = findViewById(R.id.bottom_navigation);
+        int navigationPadding = bottomNavigation.getPaddingStart();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
         ViewCompat.setOnApplyWindowInsetsListener(dashboard, (view, insets) -> {
             Insets safeArea = insets.getInsets(WindowInsetsCompat.Type.systemBars()
-                    | WindowInsetsCompat.Type.displayCutout() | WindowInsetsCompat.Type.ime());
-            view.setPadding(safeArea.left, safeArea.top, safeArea.right, safeArea.bottom);
+                    | WindowInsetsCompat.Type.displayCutout());
+            Insets keyboard = insets.getInsets(WindowInsetsCompat.Type.ime());
+            view.setPadding(safeArea.left, 0, safeArea.right, keyboard.bottom);
+            appBar.setPadding(0, safeArea.top, 0, 0);
+            bottomNavigation.setPaddingRelative(navigationPadding, 0, navigationPadding, safeArea.bottom);
+            bottomNavigation.setVisibility(keyboard.bottom > safeArea.bottom ? View.GONE : View.VISIBLE);
             return insets;
         });
         ViewCompat.requestApplyInsets(dashboard);
@@ -96,6 +129,27 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
         showToken = findViewById(R.id.show_token);
         copyToken = findViewById(R.id.copy_token);
         rotateToken = findViewById(R.id.rotate_token);
+        configurePin = findViewById(R.id.configure_screen_pin);
+        screenControlStatus = findViewById(R.id.screen_control_status);
+        controlPinStatus = findViewById(R.id.control_pin_status);
+        screenPin = new ScreenPin(this);
+        configurePin.setOnClickListener(view -> editScreenPin());
+
+        backToControl = new OnBackPressedCallback(false) {
+            @Override
+            public void handleOnBackPressed() {
+                selectPage(CONTROL);
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, backToControl);
+        for (int index = 0; index < NAV_IDS.length; index++) {
+            int page = index;
+            findViewById(NAV_IDS[index]).setOnClickListener(view -> selectPage(page));
+        }
+        findViewById(R.id.open_pairing).setOnClickListener(view -> selectPage(PAIRING));
+        findViewById(R.id.back_to_control).setOnClickListener(view -> selectPage(CONTROL));
+        findViewById(R.id.open_pin_settings).setOnClickListener(view -> selectPage(SETTINGS));
+        selectPage(savedInstanceState == null ? CONTROL : savedInstanceState.getInt(SELECTED_PAGE, CONTROL));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && savedInstanceState == null
@@ -122,11 +176,28 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
         rotateToken.setOnClickListener(view -> confirmTokenRotation());
     }
 
+    private void selectPage(int page) {
+        selectedPage = page;
+        for (int index = 0; index < PAGE_IDS.length; index++) {
+            boolean selected = page == index;
+            findViewById(PAGE_IDS[index]).setVisibility(selected ? View.VISIBLE : View.GONE);
+            findViewById(NAV_IDS[index]).setSelected(selected);
+        }
+        backToControl.setEnabled(page != CONTROL);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putInt(SELECTED_PAGE, selectedPage);
+        super.onSaveInstanceState(outState);
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
         reloadAddresses();
         ServerService.addListener(this);
+        screenPin.addStatusListener(pinStatusChanged);
         onState(ServerService.current());
     }
 
@@ -135,12 +206,96 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
         saveFields();
         setTokenVisible(false);
         ServerService.removeListener(this);
+        screenPin.removeStatusListener(pinStatusChanged);
         super.onStop();
     }
 
     @Override
     public void onState(ServerService.State state) {
         runOnUiThread(() -> show(state));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateScreenControl();
+    }
+
+    private void updateScreenControl() {
+        int status = screenPin.saved() == null ? R.string.screen_pin_missing
+                : screenPin.needsReset() ? R.string.screen_pin_reset : R.string.screen_pin_saved;
+        screenControlStatus.setText(status);
+        controlPinStatus.setText(status);
+    }
+
+    private void editScreenPin() {
+        EditText field = new EditText(this);
+        field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        field.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
+        field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        field.setSaveEnabled(false);
+        field.setHint(R.string.screen_pin_hint);
+        field.setBackgroundResource(R.drawable.field_background);
+        field.setPaddingRelative(dp(14), dp(10), dp(14), dp(10));
+        field.setMinHeight(dp(52));
+        FrameLayout input = new FrameLayout(this);
+        input.setPaddingRelative(dp(24), dp(12), dp(24), dp(4));
+        input.addView(field, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle(R.string.configure_screen_pin)
+                .setMessage(R.string.screen_pin_description)
+                .setView(input)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.screen_pin_save, null);
+        if (screenPin.saved() != null) {
+            builder.setNeutralButton(R.string.screen_pin_clear, (dialog, which) -> {
+                try {
+                    screenPin.clear();
+                    updateScreenControl();
+                } catch (IOException error) {
+                    Toast.makeText(this, R.string.screen_pin_storage_error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        AlertDialog dialog = builder.create();
+        dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        field.requestFocus();
+        dialog.setOnDismissListener(ignored -> field.getText().clear());
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(view -> saveScreenPin(field, dialog)));
+        dialog.show();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private void saveScreenPin(EditText field, AlertDialog dialog) {
+        var entered = field.getText();
+        if (entered.length() != ScreenPin.LENGTH) {
+            field.setError(getString(R.string.screen_pin_hint));
+            return;
+        }
+        byte[] digits = new byte[ScreenPin.LENGTH];
+        try {
+            for (int i = 0; i < digits.length; i++) {
+                char digit = entered.charAt(i);
+                if (digit < '0' || digit > '9') {
+                    field.setError(getString(R.string.screen_pin_hint));
+                    return;
+                }
+                digits[i] = (byte) digit;
+            }
+            screenPin.save(digits);
+            dialog.dismiss();
+            updateScreenControl();
+        } catch (IOException | GeneralSecurityException error) {
+            field.setError(getString(R.string.screen_pin_storage_error));
+        } finally {
+            Arrays.fill(digits, (byte) 0);
+        }
     }
 
     private void onAction(View view) {
@@ -175,6 +330,14 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
             return;
         }
         saveFields();
+        KeyguardManager keyguard = getSystemService(KeyguardManager.class);
+        if (screenPin.needsReset() && !keyguard.isDeviceLocked() && !keyguard.isKeyguardLocked()) {
+            try {
+                screenPin.resetAttempt();
+            } catch (IOException error) {
+                Toast.makeText(this, R.string.screen_pin_storage_error, Toast.LENGTH_SHORT).show();
+            }
+        }
         String reachable = "0.0.0.0".equals(bind) && !wlanAddress.isEmpty() ? wlanAddress : bind;
         actionButton.setEnabled(false);
         ServerService.start(this, bind, port, token, reachable);
@@ -196,6 +359,9 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
         }
         showDetail(state.error());
         actionButton.setText(state.running() ? R.string.action_stop : R.string.action_start);
+        actionButton.setBackgroundResource(state.running() ? R.drawable.stop_background : R.drawable.action_background);
+        actionButton.setTextColor(ContextCompat.getColorStateList(this,
+                state.running() ? R.color.control_text : R.color.primary_button_text));
         actionButton.setEnabled(!state.starting());
 
         pairingUrl.setText(state.url());
@@ -205,12 +371,14 @@ public final class MainActivity extends AppCompatActivity implements ServerServi
         copyConfig.setEnabled(state.running());
 
         boolean editable = !state.running() && !state.starting();
-        settingsLocked.setVisibility(state.running() ? View.VISIBLE : View.GONE);
+        settingsLocked.setVisibility(editable ? View.GONE : View.VISIBLE);
         portField.setEnabled(editable);
         tokenField.setEnabled(editable);
         bindSpinner.setEnabled(editable);
         refreshAddresses.setEnabled(editable);
         rotateToken.setEnabled(editable);
+        configurePin.setEnabled(editable);
+        updateScreenControl();
     }
 
     private void showStatus(int status, int summary, int color, int background) {

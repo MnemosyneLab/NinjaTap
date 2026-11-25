@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NinjaTap</string>
+    <string name="nav_control">控制</string>
+    <string name="nav_pairing">配对</string>
+    <string name="nav_settings">设置</string>
+    <string name="control_title">设备控制</string>
     <string name="status_stopped">未运行</string>
     <string name="status_starting">正在启动</string>
     <string name="status_running">运行中</string>
@@ -9,11 +13,16 @@
     <string name="service_title">手机控制服务</string>
     <string name="service_idle">启动后，电脑可通过 Wi-Fi 控制这台手机。</string>
     <string name="service_starting">正在准备 HTTPS 连接。</string>
-    <string name="service_running">已接受局域网 HTTPS 连接。</string>
+    <string name="service_running">HTTPS 服务正在监听。电脑可以通过 Wi-Fi 连接。</string>
     <string name="service_failed">检查下面的错误，再重试。</string>
     <string name="action_start">开启服务</string>
     <string name="action_stop">停止服务</string>
     <string name="pairing_title">Wi-Fi 配对</string>
+    <string name="pairing_shortcut">连接电脑上的 CLI 或 MCP</string>
+    <string name="pairing_intro">在同一 Wi-Fi 网络中配对电脑。</string>
+    <string name="pairing_pending_title">等待控制服务启动</string>
+    <string name="back_to_control">返回控制</string>
+    <string name="pairing_config_hint">在电脑端将配置粘贴到 NinjaTap 的 .env 文件。</string>
     <string name="pairing_pending">开启服务后，会显示配对地址和证书指纹。</string>
     <string name="label_url">HTTPS 地址</string>
     <string name="label_fingerprint">SHA-256 证书指纹</string>
@@ -25,7 +34,7 @@
     <string name="copy_config_description">复制包含地址、证书指纹和令牌的 .env 配置</string>
     <string name="copy_done">已复制</string>
     <string name="copy_failed">无法访问剪贴板</string>
-    <string name="settings_title">服务设置</string>
+    <string name="settings_title">网络监听</string>
     <string name="settings_locked">停止服务后可以修改这些设置。</string>
     <string name="label_port">端口</string>
     <string name="label_token">访问令牌</string>
@@ -41,4 +50,14 @@
     <string name="missing_bind">请选择一个监听地址。</string>
     <string name="hint_root">服务需要 KernelSU 的 root 授权。手机重启后，打开 NinjaTap 手动开启服务。</string>
     <string name="channel_name">服务状态</string>
+    <string name="screen_control_title">远程锁屏与解锁</string>
+    <string name="configure_screen_pin">设置解锁 PIN</string>
+    <string name="screen_pin_description">请输入此手机的 6 位锁屏 PIN。PIN 加密保存在此 App 内，已配对的电脑可以请求解锁。</string>
+    <string name="screen_pin_hint">请输入 6 位数字</string>
+    <string name="screen_pin_missing">PIN 未设置</string>
+    <string name="screen_pin_saved">PIN 已保存</string>
+    <string name="screen_pin_reset">自动解锁已暂停</string>
+    <string name="screen_pin_storage_error">无法更新 PIN，请重试。</string>
+    <string name="screen_pin_save">保存</string>
+    <string name="screen_pin_clear">清除 PIN</string>
 </resources>

@@ -1,4 +1,4 @@
-//! `GET /screencap`, `POST /inject`, and the clipboard routes on one process.
+//! HTTPS routes for the Android player.
 //!
 //! The bearer token is checked. A subnet allow-list is not applied yet.
 
@@ -99,7 +99,10 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
     let operation = match (&parts.method, parts.uri.path()) {
         (&Method::GET, "/screencap") => Operation::Screencap,
         (&Method::GET, "/clipboard") => Operation::ReadClipboard,
-        (&Method::POST, path @ ("/inject" | "/clipboard" | "/key")) => {
+        (
+            &Method::POST,
+            path @ ("/inject" | "/clipboard" | "/key" | "/screen/lock" | "/screen/unlock"),
+        ) => {
             payload = match timeout(BODY_TIMEOUT, to_bytes(body, MAX_BODY_BYTES)).await {
                 Ok(Ok(payload)) => payload,
                 Ok(Err(error)) if error.source().is_some_and(|e| e.is::<LengthLimitError>()) => {
@@ -111,6 +114,12 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
             match path {
                 "/inject" => Operation::Inject,
                 "/key" => Operation::Key,
+                "/screen/lock" | "/screen/unlock" => {
+                    if !payload.is_empty() {
+                        return text("screen control requires an empty request body\n", 400);
+                    }
+                    Operation::ScreenControl(if path == "/screen/lock" { b'L' } else { b'U' })
+                }
                 _ => Operation::WriteClipboard,
             }
         }
@@ -120,20 +129,31 @@ async fn handle(State(state): State<ServerState>, request: Request) -> HttpRespo
     // These operations use separate resources. Reject overlap within each
     // category without queuing work on the phone.
     let semaphore = match operation {
-        Operation::Screencap => state.capture,
-        Operation::Inject | Operation::Key => state.touch,
+        Operation::Screencap => state.capture.clone(),
+        Operation::Inject | Operation::Key | Operation::ScreenControl(_) => state.touch,
         Operation::ReadClipboard | Operation::WriteClipboard => state.clipboard,
     };
     let Ok(permit) = semaphore.try_acquire_owned() else {
         return text("device busy\n", 503);
     };
+    // Keep screenshots and remote input out of the PIN entry sequence.
+    let capture_permit = if matches!(operation, Operation::ScreenControl(_)) {
+        let Ok(permit) = state.capture.try_acquire_owned() else {
+            return text("device busy\n", 503);
+        };
+        Some(permit)
+    } else {
+        None
+    };
     tokio::task::spawn_blocking(move || {
         let _permit = permit;
+        let _capture_permit = capture_permit;
         match operation {
             Operation::Screencap => screencap(),
             Operation::ReadClipboard => read_clipboard(),
             Operation::Inject => inject(&payload),
             Operation::Key => press_key(&payload),
+            Operation::ScreenControl(command) => control_screen(command),
             Operation::WriteClipboard => write_clipboard(&payload),
         }
     })
@@ -146,7 +166,42 @@ enum Operation {
     ReadClipboard,
     Inject,
     Key,
+    ScreenControl(u8),
     WriteClipboard,
+}
+
+fn control_screen(command: u8) -> HttpResponse {
+    let response = screen::control(command);
+    let (status, code) = match response.as_deref() {
+        Ok("ok") => ("ok", 200),
+        Ok("screen_pin_required") => ("screen_pin_required", 409),
+        Ok("screen_pin_reset_required") => ("screen_pin_reset_required", 409),
+        Ok("screen_pin_keypad_unavailable") => ("screen_pin_keypad_unavailable", 409),
+        Ok("screen_pin_unavailable") => ("screen_pin_unavailable", 409),
+        Ok("screen_wake_failed") => ("screen_wake_failed", 502),
+        Ok("screen_lock_failed") => ("screen_lock_failed", 502),
+        Ok("screen_unlock_failed") => ("screen_unlock_failed", 502),
+        Ok("screen_control_unavailable") => ("screen_control_unavailable", 503),
+        Err(error) if error.kind() == io::ErrorKind::NotConnected => {
+            ("screen_control_unavailable", 503)
+        }
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock
+            ) =>
+        {
+            ("screen_control_timeout", 504)
+        }
+        _ => ("screen_control_failed", 502),
+    };
+    bytes(
+        serde_json::json!({ "status": status })
+            .to_string()
+            .into_bytes(),
+        "application/json",
+        code,
+    )
 }
 
 #[derive(Deserialize)]
@@ -445,6 +500,19 @@ mod tests {
             StatusCode::SERVICE_UNAVAILABLE
         );
         assert_eq!(
+            handle(
+                State(state.clone()),
+                request()
+                    .method(Method::POST)
+                    .uri("/screen/unlock")
+                    .body(Body::empty())
+                    .unwrap()
+            )
+            .await
+            .status(),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        assert_eq!(
             handle(State(state.clone()), post("/clipboard"))
                 .await
                 .status(),
@@ -472,5 +540,32 @@ mod tests {
             handle(State(state), screenshot()).await.status(),
             StatusCode::SERVICE_UNAVAILABLE
         );
+    }
+
+    #[tokio::test]
+    async fn screen_control_rejects_unauthenticated_requests_and_payloads() {
+        let state = ServerState {
+            secret: "fixture".into(),
+            capture: Arc::new(Semaphore::new(1)),
+            touch: Arc::new(Semaphore::new(1)),
+            clipboard: Arc::new(Semaphore::new(1)),
+            transfer: Arc::new(Semaphore::new(1)),
+        };
+        for path in ["/screen/lock", "/screen/unlock"] {
+            let post = || Request::builder().method(Method::POST).uri(path);
+            let unauthorized = post().body(Body::empty()).unwrap();
+            let with_body = post()
+                .header(header::AUTHORIZATION, "Bearer fixture")
+                .body(Body::from("{}"))
+                .unwrap();
+            assert_eq!(
+                handle(State(state.clone()), unauthorized).await.status(),
+                StatusCode::UNAUTHORIZED
+            );
+            assert_eq!(
+                handle(State(state.clone()), with_body).await.status(),
+                StatusCode::BAD_REQUEST
+            );
+        }
     }
 }

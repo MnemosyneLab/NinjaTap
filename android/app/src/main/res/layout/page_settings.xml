@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:visibility="gone">
+
+    <LinearLayout style="@style/NinjaTapPageContent">
+
+        <TextView
+            style="@style/NinjaTapPageTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/nav_settings" />
+
+        <TextView
+            android:id="@+id/settings_locked"
+            style="@style/NinjaTapSubtext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_locked"
+            android:visibility="gone" />
+
+        <LinearLayout
+            style="@style/NinjaTapCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp">
+
+            <LinearLayout style="@style/NinjaTapValueRow">
+
+                <ImageView
+                    style="@style/NinjaTapShortcutIcon"
+                    android:layout_marginEnd="12dp"
+                    android:src="@drawable/ic_lock" />
+
+                <LinearLayout style="@style/NinjaTapShortcutText">
+
+                    <TextView
+                        style="@style/NinjaTapHeading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/screen_control_title" />
+
+                    <TextView
+                        android:id="@+id/screen_control_status"
+                        style="@style/NinjaTapRowSubtitle" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/configure_screen_pin"
+                style="@style/NinjaTapTextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="@string/configure_screen_pin" />
+        </LinearLayout>
+
+        <LinearLayout
+            style="@style/NinjaTapCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <LinearLayout style="@style/NinjaTapValueRow">
+
+                <TextView
+                    style="@style/NinjaTapHeading"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/settings_title" />
+
+                <Button
+                    android:id="@+id/refresh_addresses"
+                    style="@style/NinjaTapTextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/refresh_addresses" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    style="@style/NinjaTapShortcutText"
+                    android:layout_weight="2">
+
+                    <TextView
+                        style="@style/NinjaTapValueLabel"
+                        android:labelFor="@id/bind"
+                        android:text="@string/label_bind" />
+
+                    <Spinner
+                        android:id="@+id/bind"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="5dp"
+                        android:background="@drawable/spinner_background"
+                        android:contentDescription="@string/label_bind"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="26dp"
+                        android:popupBackground="@drawable/panel_background"
+                        android:spinnerMode="dropdown" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/NinjaTapShortcutText"
+                    android:layout_marginStart="12dp">
+
+                    <TextView
+                        style="@style/NinjaTapValueLabel"
+                        android:labelFor="@id/port"
+                        android:text="@string/label_port" />
+
+                    <EditText
+                        android:id="@+id/port"
+                        style="@style/NinjaTapField"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:imeOptions="actionDone"
+                        android:inputType="number"
+                        android:maxLength="5"
+                        android:singleLine="true" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            style="@style/NinjaTapCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <TextView
+                style="@style/NinjaTapHeading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:labelFor="@id/token"
+                android:text="@string/label_token" />
+
+            <EditText
+                android:id="@+id/token"
+                style="@style/NinjaTapField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:imeOptions="actionDone"
+                android:inputType="textPassword"
+                android:saveEnabled="false"
+                android:singleLine="true" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/show_token"
+                    style="@style/NinjaTapTokenButton"
+                    android:text="@string/show_token" />
+
+                <Button
+                    android:id="@+id/copy_token"
+                    style="@style/NinjaTapTokenButton"
+                    android:text="@string/copy_token" />
+
+                <Button
+                    android:id="@+id/rotate_token"
+                    style="@style/NinjaTapTokenButton"
+                    android:text="@string/rotate_token" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            style="@style/NinjaTapSubtext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="3dp"
+            android:layout_marginTop="14dp"
+            android:text="@string/hint_root" />
+    </LinearLayout>
+</ScrollView>

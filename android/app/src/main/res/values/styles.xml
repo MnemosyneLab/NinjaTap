@@ -1,22 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="NinjaTapPageContent">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:focusableInTouchMode">true</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingEnd">24dp</item>
+        <item name="android:paddingBottom">24dp</item>
+    </style>
+
     <style name="NinjaTapCard">
         <item name="android:background">@drawable/panel_background</item>
         <item name="android:orientation">vertical</item>
-        <item name="android:padding">16dp</item>
+        <item name="android:padding">18dp</item>
     </style>
 
     <style name="NinjaTapHeading">
         <item name="android:accessibilityHeading">true</item>
         <item name="android:textColor">@color/ink</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">18sp</item>
         <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="NinjaTapPageTitle">
+        <item name="android:accessibilityHeading">true</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">-0.025</item>
     </style>
 
     <style name="NinjaTapLabel">
         <item name="android:textColor">@color/muted</item>
         <item name="android:textSize">13sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="NinjaTapSubtext">
@@ -41,6 +60,138 @@
         <item name="android:textAllCaps">false</item>
     </style>
 
+    <style name="NinjaTapPrimaryButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/action_background</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/primary_button_text</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="NinjaTapNavigationItem">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">70dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="NinjaTapNavigationIcon">
+        <item name="android:layout_width">64dp</item>
+        <item name="android:layout_height">32dp</item>
+        <item name="android:background">@drawable/nav_pill</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:tint">@color/nav_ink</item>
+        <item name="android:duplicateParentState">true</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="NinjaTapNavigationLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">3dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/nav_ink</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:duplicateParentState">true</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="NinjaTapShortcut">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">76dp</item>
+        <item name="android:paddingHorizontal">14dp</item>
+        <item name="android:paddingVertical">12dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:background">@drawable/panel_background</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:screenReaderFocusable">true</item>
+    </style>
+
+    <style name="NinjaTapShortcutIcon">
+        <item name="android:layout_width">42dp</item>
+        <item name="android:layout_height">42dp</item>
+        <item name="android:background">@drawable/status_background</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="NinjaTapShortcutArrow">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:src">@drawable/ic_chevron</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="NinjaTapShortcutText">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="NinjaTapRowTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="NinjaTapRowSubtitle" parent="NinjaTapSubtext">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">2dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="NinjaTapValueRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:baselineAligned">false</item>
+    </style>
+
+    <style name="NinjaTapValueLabel" parent="NinjaTapLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="NinjaTapDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:layout_marginTop">14dp</item>
+        <item name="android:layout_marginBottom">14dp</item>
+        <item name="android:background">@color/line</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="NinjaTapCopyButton" parent="NinjaTapTextButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:text">@string/copy</item>
+    </style>
+
+    <style name="NinjaTapTokenButton" parent="NinjaTapTextButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+    </style>
+
     <style name="NinjaTapField">
         <item name="android:background">@drawable/field_background</item>
         <item name="android:fontFamily">monospace</item>
@@ -49,6 +200,7 @@
         <item name="android:paddingStart">12dp</item>
         <item name="android:paddingEnd">12dp</item>
         <item name="android:textColor">@color/ink</item>
+        <item name="android:textColorHint">@color/muted</item>
         <item name="android:textSize">15sp</item>
     </style>
 </resources>

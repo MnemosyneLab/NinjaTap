@@ -74,6 +74,12 @@ class Phone:
         _raise_unless_ok(payload, "navigation failed")
         return "ok"
 
+    def set_screen_locked(self, locked: bool, timeout: float | None = None) -> str:
+        operation = "lock" if locked else "unlock"
+        payload = json.loads(self._open(f"/screen/{operation}", b"", timeout))
+        _raise_unless_ok(payload, f"screen {operation} failed")
+        return "ok"
+
     def read_clipboard(self, timeout: float | None = None) -> str:
         payload = json.loads(self._open("/clipboard", timeout=timeout).decode())
         _raise_unless_ok(payload)
